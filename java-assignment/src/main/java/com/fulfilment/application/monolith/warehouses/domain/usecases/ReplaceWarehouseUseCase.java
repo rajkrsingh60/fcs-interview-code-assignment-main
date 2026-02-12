@@ -69,12 +69,6 @@ public class ReplaceWarehouseUseCase implements ReplaceWarehouseOperation {
               "New capacity cannot accommodate existing stock. existingStock=" + current.stock + ", newCapacity=" + newWarehouse.capacity);
     }
 
-    // Stock matching: stock must match old warehouse stock
-    if (!Objects.equals(newWarehouse.stock, current.stock)) {
-      throw new IllegalStateException(
-              "New warehouse stock must match existing stock. existingStock=" + current.stock + ", newStock=" + newWarehouse.stock);
-    }
-
     // ---- max warehouses at the target location ----
     // Count active warehouses at target location, excluding the one being replaced (same BU code).
     long activeAtTarget =

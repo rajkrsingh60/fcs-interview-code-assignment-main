@@ -154,6 +154,44 @@ public class ReplaceWarehouseUseCaseTest {
     }
 
     @Test
+    public void whenUserTriesToReplaceWarehouseItShouldFailIfStockExceedsCapacity() {
+
+        WarehouseDTO warehouseDTO = new WarehouseDTO();
+
+        warehouseDTO.businessUnitCode = "MWH.001";
+        warehouseDTO.capacity = 10;
+        warehouseDTO.location = "ZWOLLE-001";
+        warehouseDTO.stock = 11;
+
+        IllegalStateException illegalStateException = assertThrows(
+                IllegalStateException.class,
+                () -> replaceWarehouseOperation.replace(warehouseDTO)
+        );
+
+        assertEquals("Stock cannot exceed capacity.", illegalStateException.getMessage());
+
+    }
+
+    @Test
+    public void whenUserTriesToCreateWarehouseItShouldFailIfNewCapacityLessThanCurrentStock() {
+
+        WarehouseDTO warehouseDTO = new WarehouseDTO();
+
+        warehouseDTO.businessUnitCode = "MWH.001";
+        warehouseDTO.capacity = 9;
+        warehouseDTO.location = "ZWOLLE-001";
+        warehouseDTO.stock = 9;
+
+        IllegalStateException illegalStateException = assertThrows(
+                IllegalStateException.class,
+                () -> replaceWarehouseOperation.replace(warehouseDTO)
+        );
+
+        assertEquals("New capacity cannot accommodate existing stock. existingStock=10, newCapacity=9", illegalStateException.getMessage());
+
+    }
+
+    @Test
     public void whenUserTriesToReplaceWarehouseItShouldSucceedIfAllConditionPasses() {
 
         WarehouseDTO warehouseDTO = new WarehouseDTO();
@@ -173,7 +211,6 @@ public class ReplaceWarehouseUseCaseTest {
         assertEquals(10, replacedWarehouseDTO.stock);
 
     }
-
 
 
 

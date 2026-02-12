@@ -71,19 +71,20 @@ public class WarehouseEndpointIT {
         warehouse.setLocation("AMSTERDAM-001");
         warehouse.setStock(300);
 
-        given()
+        String createdId = given()
                 .contentType(ContentType.JSON)
                 .body(warehouse)
                 .when()
                 .post(path)
                 .then()
                 .statusCode(200)
-                .body("businessUnitCode", is("LON.001"));
+                .extract()
+                .jsonPath().get("id");
 
         ExtractableResponse<Response> newlyCreatedWareHouse = given()
                 .contentType(ContentType.JSON)
                 .when()
-                .get(path + "/" + "LON.001")
+                .get(path + "/" + createdId)
                 .then()
                 .statusCode(200)
                 .extract();
@@ -91,6 +92,65 @@ public class WarehouseEndpointIT {
         assertEquals("LON.001", newlyCreatedWareHouse.jsonPath().getString("businessUnitCode"));
         assertEquals(10, newlyCreatedWareHouse.jsonPath().getInt("capacity"));
         assertEquals(300, newlyCreatedWareHouse.jsonPath().getInt("stock"));
+
+    }
+
+    @Test
+    public void createNewAndThenArchiveWareHouse() {
+
+        Warehouse warehouse = new Warehouse();
+        warehouse.setBusinessUnitCode("LON.002");
+        warehouse.setCapacity(10);
+        warehouse.setLocation("AMSTERDAM-001");
+        warehouse.setStock(300);
+
+        String createdId = given()
+                .contentType(ContentType.JSON)
+                .body(warehouse)
+                .when()
+                .post(path)
+                .then()
+                .statusCode(200)
+                .extract()
+                .jsonPath().get("id");
+
+        ExtractableResponse<Response> newlyCreatedWareHouse = given()
+                .contentType(ContentType.JSON)
+                .when()
+                .delete(path + "/" + createdId)
+                .then()
+                .statusCode(204)
+                .extract();
+
+    }
+
+    @Test
+    public void createNewAndThenReplaceWareHouse() {
+
+        Warehouse warehouse = new Warehouse();
+        warehouse.setBusinessUnitCode("LON.003");
+        warehouse.setCapacity(10);
+        warehouse.setLocation("AMSTERDAM-001");
+        warehouse.setStock(10);
+
+        String createdId = given()
+                .contentType(ContentType.JSON)
+                .body(warehouse)
+                .when()
+                .post(path)
+                .then()
+                .statusCode(200)
+                .extract()
+                .jsonPath().get("id");
+
+        ExtractableResponse<Response> newlyReplacedWareHouse = given()
+                .contentType(ContentType.JSON)
+                .body(warehouse)
+                .when()
+                .post(path + "/" + "LON.003" + "/replacement")
+                .then()
+                .statusCode(200)
+                .extract();
 
     }
 }

@@ -36,7 +36,7 @@ public class ArchiveWarehouseUseCase implements ArchiveWarehouseOperation {
     warehouse.archivedAt = LocalDateTime.now();
 
     // Persist the state change (your repository should map archivedAt -> DbWarehouse.archivedAt)
-    warehouseStore.update(warehouse);
+    warehouseStore.remove(warehouse);
 
   }
 }

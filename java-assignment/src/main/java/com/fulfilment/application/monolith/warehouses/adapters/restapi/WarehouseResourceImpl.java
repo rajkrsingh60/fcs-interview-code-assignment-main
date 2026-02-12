@@ -1,5 +1,7 @@
 package com.fulfilment.application.monolith.warehouses.adapters.restapi;
 
+import com.fulfilment.application.monolith.stores.StoreResource;
+import com.fulfilment.application.monolith.warehouses.adapters.database.DbWarehouse;
 import com.fulfilment.application.monolith.warehouses.adapters.database.WarehouseRepository;
 import com.fulfilment.application.monolith.warehouses.domain.models.WarehouseDTO;
 import com.fulfilment.application.monolith.warehouses.domain.ports.ArchiveWarehouseOperation;
@@ -11,8 +13,10 @@ import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Inject;
 import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.WebApplicationException;
+import org.jboss.logging.Logger;
 
 import java.util.List;
+import java.util.Optional;
 
 @RequestScoped
 public class WarehouseResourceImpl implements WarehouseResource {
@@ -27,6 +31,8 @@ public class WarehouseResourceImpl implements WarehouseResource {
     @Inject
     private ArchiveWarehouseOperation archiveWarehouse;
 
+    private static final Logger LOGGER = Logger.getLogger(StoreResource.class.getName());
+
     @Override
     public List<Warehouse> listAllWarehousesUnits() {
         return warehouseRepository.getAll().stream().map(this::toWarehouseResponse).toList();
@@ -36,27 +42,45 @@ public class WarehouseResourceImpl implements WarehouseResource {
     public Warehouse createANewWarehouseUnit(@NotNull Warehouse data) {
         WarehouseDTO warehouseDTO = toModelWareHouse(data);
         createWarehouse.create(warehouseDTO);
-        return toWarehouseResponse(warehouseDTO);
+        Optional<DbWarehouse> dbWarehouse = warehouseRepository.findAll()
+                .stream()
+                .filter(db ->
+                        db.businessUnitCode
+                                .equals(data.getBusinessUnitCode()))
+                .findFirst();
+
+        if (dbWarehouse.isEmpty()) {
+            throw new WebApplicationException("Unable to create warehouse.", 404);
+        } else {
+            data.setId(String.valueOf(dbWarehouse.get().id));
+        }
+
+        LOGGER.info("Warehouse created with id: " + dbWarehouse.get().id);
+
+        return data;
     }
 
     @Override
-    public Warehouse getAWarehouseUnitByID(String businessUnitCode) {
-        WarehouseDTO byBusinessUnitCode = warehouseRepository.findByBusinessUnitCode(businessUnitCode);
-        if (byBusinessUnitCode == null) {
-            throw new WebApplicationException("Warehouse with id " + businessUnitCode + " does not exist.", 404);
+    public Warehouse getAWarehouseUnitByID(String id) {
+        LOGGER.info("id: " + id);
+        long longId = Long.parseLong(id);
+        DbWarehouse byId = warehouseRepository.findById(longId);
+        if (byId == null) {
+            throw new WebApplicationException("Warehouse with id " + id + " does not exist.", 404);
         }
-        return toWarehouseResponse(byBusinessUnitCode);
+        return toApiWareHouse(byId);
     }
 
     @Override
-    public void archiveAWarehouseUnitByID(String businessUnitCode) {
+    public void archiveAWarehouseUnitByID(String id) {
 
-        WarehouseDTO byBusinessUnitCode = warehouseRepository.findByBusinessUnitCode(businessUnitCode);
-        if (byBusinessUnitCode == null) {
-            throw new WebApplicationException("Warehouse with id " + businessUnitCode + " does not exist.", 404);
+        long longId = Long.parseLong(id);
+        DbWarehouse byId = warehouseRepository.findById(longId);
+        if (byId == null) {
+            throw new WebApplicationException("Warehouse with id " + id + " does not exist.", 404);
         }
 
-        archiveWarehouse.archive(byBusinessUnitCode);
+        archiveWarehouse.archive(byId.toWarehouse());
 
     }
 
@@ -97,4 +121,16 @@ public class WarehouseResourceImpl implements WarehouseResource {
         return modelWarehouse;
     }
 
+    private Warehouse toApiWareHouse(DbWarehouse warehouse) {
+
+        Warehouse modelWarehouse = new Warehouse();
+
+        modelWarehouse.setId(String.valueOf(warehouse.id));
+        modelWarehouse.setBusinessUnitCode(warehouse.businessUnitCode);
+        modelWarehouse.setLocation(warehouse.location);
+        modelWarehouse.setCapacity(warehouse.capacity);
+        modelWarehouse.setStock(warehouse.stock);
+
+        return modelWarehouse;
+    }
 }
