@@ -14,6 +14,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.is;
 
@@ -32,8 +35,7 @@ public class FulfilmentResourceTest {
     @Inject
     StoreRepository storeRepository;
 
-    private Product product1;
-    private Product product2;
+    private final List<Product> products = new ArrayList<>();
     private Store store;
     private DbWarehouse warehouse1;
     private DbWarehouse warehouse2;
@@ -45,11 +47,11 @@ public class FulfilmentResourceTest {
     public void setup() {
         fulfilmentRepository.deleteAll();
 
-        product1 = new Product("Test Product 1");
-        productRepository.persist(product1);
-
-        product2 = new Product("Test Product 2");
-        productRepository.persist(product2);
+        for (int i = 1; i <= 6; i++) {
+            Product p = new Product("Test Product " + i);
+            productRepository.persist(p);
+            products.add(p);
+        }
 
         store = new Store("Test Store");
         storeRepository.persist(store);
@@ -75,8 +77,10 @@ public class FulfilmentResourceTest {
     @Transactional
     public void cleanup() {
         fulfilmentRepository.deleteAll();
-        productRepository.deleteById(product1.id);
-        productRepository.deleteById(product2.id);
+        for (Product p : products) {
+            productRepository.deleteById(p.id);
+        }
+        products.clear();
         storeRepository.deleteById(store.id);
         warehouseRepository.deleteById(warehouse1.id);
         warehouseRepository.deleteById(warehouse2.id);
@@ -88,7 +92,7 @@ public class FulfilmentResourceTest {
     @Test
     public void testAddFulfilment_success() {
         FulfilmentRequest request = new FulfilmentRequest();
-        request.productId = product1.id;
+        request.productId = products.get(0).id;
         request.warehouseId = warehouse1.id;
         request.storeId = store.id;
 
@@ -114,7 +118,7 @@ public class FulfilmentResourceTest {
     @Test
     public void testAddFulfilment_failure_exceedsProductWarehouseLimitPerStore() {
         FulfilmentRequest request = new FulfilmentRequest();
-        request.productId = product1.id;
+        request.productId = products.get(0).id;
         request.storeId = store.id;
 
         // Add first two fulfilments for product1
@@ -141,7 +145,7 @@ public class FulfilmentResourceTest {
         request.storeId = store.id;
 
         // Fulfilment 1: product1 from warehouse1
-        request.productId = product1.id;
+        request.productId = products.get(0).id;
         request.warehouseId = warehouse1.id;
         given().contentType("application/json").body(request).when().post("/fulfilment").then().statusCode(201);
 
@@ -150,12 +154,12 @@ public class FulfilmentResourceTest {
         given().contentType("application/json").body(request).when().post("/fulfilment").then().statusCode(201);
 
         // Fulfilment 3: product2 from warehouse3. This is the 3rd distinct warehouse for the store.
-        request.productId = product2.id;
+        request.productId = products.get(1).id;
         request.warehouseId = warehouse3.id;
         given().contentType("application/json").body(request).when().post("/fulfilment").then().statusCode(201);
 
         // Try to add a 4th fulfilment from a new warehouse (warehouse4) for the same store.
-        request.productId = product2.id;
+        request.productId = products.get(1).id;
         request.warehouseId = warehouse4.id;
         given()
                 .contentType("application/json")
@@ -165,6 +169,30 @@ public class FulfilmentResourceTest {
                 .then()
                 .statusCode(409)
                 .body(is("A store can be fulfilled by a maximum of 3 different warehouses."));
+    }
+
+    @Test
+    public void testAddFulfilment_failure_exceedsWarehouseProductLimit() {
+        FulfilmentRequest request = new FulfilmentRequest();
+        request.warehouseId = warehouse1.id;
+        request.storeId = store.id;
+
+        // Add 5 products to warehouse1
+        for (int i = 0; i < 5; i++) {
+            request.productId = products.get(i).id;
+            given().contentType("application/json").body(request).when().post("/fulfilment").then().statusCode(201);
+        }
+
+        // Try to add a 6th product
+        request.productId = products.get(5).id;
+        given()
+                .contentType("application/json")
+                .body(request)
+                .when()
+                .post("/fulfilment")
+                .then()
+                .statusCode(409)
+                .body(is("A warehouse can store a maximum of 5 types of products."));
     }
 
 

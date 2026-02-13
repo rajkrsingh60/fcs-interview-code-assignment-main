@@ -27,6 +27,14 @@ public class FulfilmentService {
             throw new Exception("A store can be fulfilled by a maximum of 3 different warehouses.");
         }
 
+        // Rule 3: A warehouse can store a maximum of 5 types of products.
+        long distinctProductCount = fulfilmentRepository.find("select distinct product from Fulfilment where warehouse = ?1", warehouse).count();
+        long productAssociationCount = fulfilmentRepository.count("warehouse = ?1 and product = ?2", warehouse, product);
+
+        if (distinctProductCount >= 5 && productAssociationCount == 0) {
+            throw new Exception("A warehouse can store a maximum of 5 types of products.");
+        }
+
         Fulfilment fulfilment = new Fulfilment();
         fulfilment.product = product;
         fulfilment.warehouse = warehouse;
