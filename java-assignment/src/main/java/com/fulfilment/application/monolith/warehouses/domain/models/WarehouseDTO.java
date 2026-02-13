@@ -16,4 +16,11 @@ public class WarehouseDTO {
   public LocalDateTime createdAt;
 
   public LocalDateTime archivedAt;
+
+  public void archive() {
+    if (this.archivedAt != null) {
+      throw new IllegalStateException("Warehouse is already archived.");
+    }
+    this.archivedAt = LocalDateTime.now();
+  }
 }
