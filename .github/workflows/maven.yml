@@ -27,3 +27,4 @@ jobs:
       run: cd java-assignment && mvn -B verify
       env:
         TESTCONTAINERS_CHECKS_TIMEOUT: "240"
+        DOCKER_HOST: "unix:///var/run/docker.sock"
