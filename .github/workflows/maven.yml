@@ -41,6 +41,7 @@ jobs:
         if: github.ref == 'refs/heads/main'
         uses: actions/upload-pages-artifact@v3
         with:
+          name: jacoco-report
           path: java-assignment/target/site/jacoco
 
   deploy:
