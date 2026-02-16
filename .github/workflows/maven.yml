@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write   # needed to commit badge
   pages: write
   id-token: write
 
@@ -25,6 +25,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -36,7 +38,30 @@ jobs:
       - name: Build + tests + JaCoCo
         run: mvn -B clean verify --file pom.xml
 
-      # Package the JaCoCo HTML so deploy job can publish it
+      # ---- Badge generation (only on main, not PRs) ----
+      - name: Generate JaCoCo Badge
+        id: jacoco
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: cicirello/jacoco-badge-generator@v2
+        with:
+          generate-branches-badge: true
+          jacoco-csv-file: java-assignment/target/site/jacoco/jacoco.csv
+          badges-directory: .github/badges
+
+      - name: Log coverage percentage
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        run: |
+          echo "coverage = ${{ steps.jacoco.outputs.coverage }}"
+
+      - name: Commit and push the badge (if it changed)
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: EndBug/add-and-commit@v9
+        with:
+          default_author: github_actions
+          message: "Update JaCoCo badges"
+          add: ".github/badges/*.svg"
+
+      # ---- Pages artifact for the HTML report ----
       - name: Upload Pages artifact (JaCoCo HTML)
         if: github.ref == 'refs/heads/main'
         uses: actions/upload-pages-artifact@v3
