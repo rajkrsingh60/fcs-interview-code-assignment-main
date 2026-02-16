@@ -5,69 +5,65 @@ import com.fulfilment.application.monolith.warehouses.domain.models.Location;
 import com.fulfilment.application.monolith.warehouses.domain.models.WarehouseDTO;
 import com.fulfilment.application.monolith.warehouses.domain.ports.CreateWarehouseOperation;
 import com.fulfilment.application.monolith.warehouses.domain.ports.WarehouseStore;
+import com.fulfilment.application.monolith.warehouses.domain.rules.WarehouseValidationRules;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.transaction.Transactional;
-import org.apache.commons.lang.StringUtils;
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.Response;
+import org.jboss.logging.Logger;
 
 import java.time.LocalDateTime;
 
 @ApplicationScoped
 public class CreateWarehouseUseCase implements CreateWarehouseOperation {
 
+  private static final Logger LOG = Logger.getLogger(CreateWarehouseUseCase.class);
+
   private final WarehouseStore warehouseStore;
   private final LocationGateway locationGateway;
-
+  private final WarehouseValidationRules warehouseValidationRules;
 
   public CreateWarehouseUseCase(WarehouseStore warehouseStore, LocationGateway locationGateway) {
     this.warehouseStore = warehouseStore;
     this.locationGateway = locationGateway;
+    this.warehouseValidationRules = new WarehouseValidationRules();
   }
 
   @Override
   public void create(WarehouseDTO warehouse) {
-    if (warehouse == null) {
-      throw new IllegalArgumentException("Warehouse must be provided.");
-    }
-    if (StringUtils.isBlank(warehouse.businessUnitCode)) {
-      throw new IllegalArgumentException("Business unit code must be provided.");
-    }
-    if (StringUtils.isBlank(warehouse.location)) {
-      throw new IllegalArgumentException("Location must be provided.");
-    }
-    if (warehouse.capacity == null || warehouse.capacity <= 0) {
-      throw new IllegalArgumentException("Capacity must be > 0.");
-    }
-    if (warehouse.stock == null || warehouse.stock < 0) {
-      throw new IllegalArgumentException("Stock must be >= 0.");
-    }
+    warehouseValidationRules.validate(warehouse);
+    warehouseValidationRules.validateUpsert(warehouse);
 
     // 1) Business Unit Code Verification: must not already exist (active)
     WarehouseDTO existing = warehouseStore.findByBusinessUnitCode(warehouse.businessUnitCode);
     if (existing != null && existing.archivedAt == null) {
-      throw new IllegalStateException("Business unit code already exists: " + warehouse.businessUnitCode);
+      LOG.warnf("Business unit code already exists: %s", warehouse.businessUnitCode);
+      throw new WebApplicationException("Business unit code already exists: " + warehouse.businessUnitCode, Response.Status.CONFLICT);
     }
+    LOG.infof("Creating warehouse: %s", warehouse.businessUnitCode);
 
     // 2) Location Validation: must be a known valid location
     Location loc = locationGateway.resolveByIdentifier(warehouse.location);
     if (loc == null) {
-      throw new IllegalStateException("Invalid location: " + warehouse.location);
+      LOG.warnf("Invalid location: %s", warehouse.location);
+      throw new WebApplicationException("Invalid location: " + warehouse.location, 422);
     }
 
     // 3) Warehouse Creation Feasibility: max warehouses at location
     long activeAtLocation =
             warehouseStore.getAll().stream()
-                    .filter(w -> w.archivedAt == null)
                     .filter(w -> w.location.equals(warehouse.location))
                     .count();
 
     if (activeAtLocation >= loc.maxNumberOfWarehouses) {
-      throw new IllegalStateException("Maximum number of warehouses reached for location: " + warehouse.location);
+      LOG.warnf("Maximum number of warehouses reached for location: %s", warehouse.location);
+      throw new WebApplicationException("Maximum number of warehouses reached for location: " + warehouse.location, 422);
     }
 
     // 4) Capacity and Stock Validation
     if (warehouse.capacity > loc.maxCapacity) {
-      throw new IllegalStateException(
-              "Capacity exceeds max capacity for location. max=" + loc.maxCapacity + ", requested=" + warehouse.capacity);
+      LOG.warnf("Capacity %d exceeds max capacity %d for location %s", warehouse.capacity, loc.maxCapacity, warehouse.location);
+      throw new WebApplicationException(
+              "Capacity exceeds max capacity for location. max=" + loc.maxCapacity + ", requested=" + warehouse.capacity, 422);
     }
 
     // timestamps
@@ -77,6 +73,7 @@ public class CreateWarehouseUseCase implements CreateWarehouseOperation {
     warehouse.archivedAt = null;
 
     warehouseStore.create(warehouse);
+    LOG.infof("Warehouse created successfully: %s", warehouse.businessUnitCode);
   }
 
 }

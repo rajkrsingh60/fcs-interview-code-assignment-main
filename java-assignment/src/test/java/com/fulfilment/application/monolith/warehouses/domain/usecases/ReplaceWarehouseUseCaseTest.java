@@ -5,6 +5,7 @@ import com.fulfilment.application.monolith.warehouses.domain.ports.ReplaceWareho
 import com.fulfilment.application.monolith.warehouses.domain.ports.WarehouseStore;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
+import jakarta.ws.rs.WebApplicationException;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -22,12 +23,12 @@ public class ReplaceWarehouseUseCaseTest {
     @Test
     public void whenUserTriesToReplaceWarehouseItShouldFailWarehouseIsNull() {
 
-        IllegalArgumentException illegalArgumentException = assertThrows(
-                IllegalArgumentException.class,
+        WebApplicationException webApplicationException = assertThrows(
+                WebApplicationException.class,
                 () -> replaceWarehouseOperation.replace(null)
         );
 
-        assertEquals("Warehouse must be provided.", illegalArgumentException.getMessage());
+        assertEquals("Warehouse must be provided.", webApplicationException.getMessage());
     }
 
     @Test
@@ -39,12 +40,12 @@ public class ReplaceWarehouseUseCaseTest {
         warehouseDTO.location = "ZWOLLE-001";
         warehouseDTO.stock = 10;
 
-        IllegalArgumentException illegalArgumentException = assertThrows(
-                IllegalArgumentException.class,
+        WebApplicationException webApplicationException = assertThrows(
+                WebApplicationException.class,
                 () -> replaceWarehouseOperation.replace(warehouseDTO)
         );
 
-        assertEquals("Business unit code must be provided.", illegalArgumentException.getMessage());
+        assertEquals("Business unit code must be provided.", webApplicationException.getMessage());
 
     }
 
@@ -57,12 +58,12 @@ public class ReplaceWarehouseUseCaseTest {
         warehouseDTO.businessUnitCode = "IND.002";
         warehouseDTO.stock = 10;
 
-        IllegalArgumentException illegalArgumentException = assertThrows(
-                IllegalArgumentException.class,
+        WebApplicationException webApplicationException = assertThrows(
+                WebApplicationException.class,
                 () -> replaceWarehouseOperation.replace(warehouseDTO)
         );
 
-        assertEquals("Location must be provided.", illegalArgumentException.getMessage());
+        assertEquals("Location must be provided.", webApplicationException.getMessage());
 
     }
 
@@ -75,18 +76,20 @@ public class ReplaceWarehouseUseCaseTest {
         warehouseDTO.businessUnitCode = "IND.002";
         warehouseDTO.stock = 10;
 
-        IllegalArgumentException illegalArgumentExceptionCapacityNull = assertThrows(
-                IllegalArgumentException.class,
+        WebApplicationException webApplicationExceptionNull = assertThrows(
+                WebApplicationException.class,
                 () -> replaceWarehouseOperation.replace(warehouseDTO)
         );
 
-        assertEquals("Capacity must be > 0.", illegalArgumentExceptionCapacityNull.getMessage());
+        assertEquals("Capacity must be > 0.", webApplicationExceptionNull.getMessage());
 
         warehouseDTO.capacity = 0;
-        IllegalArgumentException illegalArgumentException = assertThrows(
-                IllegalArgumentException.class,
+        WebApplicationException webApplicationException = assertThrows(
+                WebApplicationException.class,
                 () -> replaceWarehouseOperation.replace(warehouseDTO)
         );
+
+        assertEquals("Capacity must be > 0.", webApplicationException.getMessage());
     }
 
     @Test
@@ -98,20 +101,20 @@ public class ReplaceWarehouseUseCaseTest {
         warehouseDTO.businessUnitCode = "IND.002";
         warehouseDTO.capacity = 10;
 
-        IllegalArgumentException illegalArgumentExceptionStockNull = assertThrows(
-                IllegalArgumentException.class,
+        WebApplicationException webApplicationExceptionNull = assertThrows(
+                WebApplicationException.class,
                 () -> replaceWarehouseOperation.replace(warehouseDTO)
         );
 
-        assertEquals("Stock must be >= 0.", illegalArgumentExceptionStockNull.getMessage());
+        assertEquals("Stock must be >= 0.", webApplicationExceptionNull.getMessage());
 
         warehouseDTO.stock = -1;
-        IllegalArgumentException illegalArgumentException = assertThrows(
-                IllegalArgumentException.class,
+        WebApplicationException webApplicationException = assertThrows(
+                WebApplicationException.class,
                 () -> replaceWarehouseOperation.replace(warehouseDTO)
         );
 
-        assertEquals("Stock must be >= 0.", illegalArgumentException.getMessage());
+        assertEquals("Stock must be >= 0.", webApplicationException.getMessage());
 
     }
 
@@ -125,12 +128,12 @@ public class ReplaceWarehouseUseCaseTest {
         warehouseDTO.location = "LONDON-001";
         warehouseDTO.stock = 10;
 
-        IllegalStateException illegalStateException = assertThrows(
-                IllegalStateException.class,
+        WebApplicationException webApplicationException = assertThrows(
+                WebApplicationException.class,
                 () -> replaceWarehouseOperation.replace(warehouseDTO)
         );
 
-        assertEquals("Invalid location: " + warehouseDTO.location, illegalStateException.getMessage());
+        assertEquals("Invalid location: " + warehouseDTO.location, webApplicationException.getMessage());
 
     }
 
@@ -144,12 +147,12 @@ public class ReplaceWarehouseUseCaseTest {
         warehouseDTO.location = "VETSBY-001";
         warehouseDTO.stock = 10;
 
-        IllegalStateException illegalStateException = assertThrows(
-                IllegalStateException.class,
+        WebApplicationException webApplicationException = assertThrows(
+                WebApplicationException.class,
                 () -> replaceWarehouseOperation.replace(warehouseDTO)
         );
 
-        assertEquals("Capacity exceeds max capacity for location. max=90, requested=1000", illegalStateException.getMessage());
+        assertEquals("Capacity exceeds max capacity for location. max=90, requested=1000", webApplicationException.getMessage());
 
     }
 
@@ -163,12 +166,12 @@ public class ReplaceWarehouseUseCaseTest {
         warehouseDTO.location = "ZWOLLE-001";
         warehouseDTO.stock = 11;
 
-        IllegalStateException illegalStateException = assertThrows(
-                IllegalStateException.class,
+        WebApplicationException webApplicationException = assertThrows(
+                WebApplicationException.class,
                 () -> replaceWarehouseOperation.replace(warehouseDTO)
         );
 
-        assertEquals("Stock cannot exceed capacity.", illegalStateException.getMessage());
+        assertEquals("Stock cannot exceed capacity.", webApplicationException.getMessage());
 
     }
 
@@ -182,12 +185,12 @@ public class ReplaceWarehouseUseCaseTest {
         warehouseDTO.location = "ZWOLLE-001";
         warehouseDTO.stock = 9;
 
-        IllegalStateException illegalStateException = assertThrows(
-                IllegalStateException.class,
+        WebApplicationException webApplicationException = assertThrows(
+                WebApplicationException.class,
                 () -> replaceWarehouseOperation.replace(warehouseDTO)
         );
 
-        assertEquals("New capacity cannot accommodate existing stock. existingStock=10, newCapacity=9", illegalStateException.getMessage());
+        assertEquals("New capacity cannot accommodate existing stock. existingStock=10, newCapacity=9", webApplicationException.getMessage());
 
     }
 

@@ -6,6 +6,7 @@ import com.fulfilment.application.monolith.warehouses.domain.ports.CreateWarehou
 import com.fulfilment.application.monolith.warehouses.domain.ports.WarehouseStore;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
+import jakarta.ws.rs.WebApplicationException;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
@@ -27,12 +28,12 @@ public class ArchiveWarehouseUseCaseTest {
     @Test
     public void whenUserTriesToCreateWarehouseItShouldFailWarehouseIsNull() {
 
-        IllegalArgumentException illegalArgumentException = assertThrows(
-                IllegalArgumentException.class,
+        WebApplicationException webApplicationException = assertThrows(
+                WebApplicationException.class,
                 () -> archiveWarehouseOperation.archive(null)
         );
 
-        assertEquals("Warehouse must be provided.", illegalArgumentException.getMessage());
+        assertEquals("Warehouse must be provided.", webApplicationException.getMessage());
     }
 
     @Test
@@ -44,12 +45,12 @@ public class ArchiveWarehouseUseCaseTest {
         warehouseDTO.location = "ZWOLLE-001";
         warehouseDTO.stock = 10;
 
-        IllegalArgumentException illegalArgumentException = assertThrows(
-                IllegalArgumentException.class,
+        WebApplicationException webApplicationException = assertThrows(
+                WebApplicationException.class,
                 () -> archiveWarehouseOperation.archive(warehouseDTO)
         );
 
-        assertEquals("Warehouse businessUnitCode must be provided.", illegalArgumentException.getMessage());
+        assertEquals("Warehouse businessUnitCode must be provided.", webApplicationException.getMessage());
 
     }
 
@@ -64,12 +65,12 @@ public class ArchiveWarehouseUseCaseTest {
         warehouseDTO.stock = 10;
         warehouseDTO.archivedAt = LocalDateTime.now();
 
-        IllegalArgumentException illegalArgumentException = assertThrows(
-                IllegalArgumentException.class,
+        WebApplicationException webApplicationException = assertThrows(
+                WebApplicationException.class,
                 () -> archiveWarehouseOperation.archive(warehouseDTO)
         );
 
-        assertEquals("Warehouse already archived.", illegalArgumentException.getMessage());
+        assertEquals("Warehouse already archived.", webApplicationException.getMessage());
 
     }
 

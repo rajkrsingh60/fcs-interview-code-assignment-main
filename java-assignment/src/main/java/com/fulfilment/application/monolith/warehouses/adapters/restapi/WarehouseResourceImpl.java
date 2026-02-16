@@ -43,7 +43,6 @@ public class WarehouseResourceImpl implements WarehouseResource {
     @Override
     public List<Warehouse> listAllWarehousesUnits() {
         return warehouseRepository.getAll().stream()
-                .filter(warehouseDTO -> warehouseDTO.archivedAt == null)
                 .map(warehouseMapper::toWarehouseResponse)
                 .toList();
     }
