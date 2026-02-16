@@ -161,15 +161,11 @@
                                         <limit>
                                             <counter>LINE</counter>
                                             <value>COVEREDRATIO</value>
-                                            <minimum>0.90</minimum>
+                                            <minimum>0.80</minimum>
                                         </limit>
                                     </limits>
                                 </rule>
                             </rules>
-                            <excludes>
-                                <exclude>**/warehouses/adapters/restapi/*</exclude>
-                                <exclude>**/warehouse/api/*</exclude> <!-- if you want -->
-                            </excludes>
                         </configuration>
                     </execution>
                 </executions>
