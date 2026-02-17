@@ -9,8 +9,6 @@ import org.junit.jupiter.api.Test;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @QuarkusIntegrationTest
@@ -37,7 +35,7 @@ public class WarehouseEndpointIT {
         warehouse.setBusinessUnitCode("LON.001");
         warehouse.setCapacity(10);
         warehouse.setLocation("AMSTERDAM-001");
-        warehouse.setStock(300);
+        warehouse.setStock(10);
 
         String createdId = given()
                 .contentType(ContentType.JSON)
@@ -59,7 +57,7 @@ public class WarehouseEndpointIT {
 
         assertEquals("LON.001", newlyCreatedWareHouse.jsonPath().getString("businessUnitCode"));
         assertEquals(10, newlyCreatedWareHouse.jsonPath().getInt("capacity"));
-        assertEquals(300, newlyCreatedWareHouse.jsonPath().getInt("stock"));
+        assertEquals(10, newlyCreatedWareHouse.jsonPath().getInt("stock"));
 
     }
 
@@ -70,7 +68,7 @@ public class WarehouseEndpointIT {
         warehouse.setBusinessUnitCode("LON.002");
         warehouse.setCapacity(10);
         warehouse.setLocation("AMSTERDAM-001");
-        warehouse.setStock(300);
+        warehouse.setStock(10);
 
         String createdId = given()
                 .contentType(ContentType.JSON)
@@ -82,7 +80,7 @@ public class WarehouseEndpointIT {
                 .extract()
                 .jsonPath().get("id");
 
-        ExtractableResponse<Response> newlyCreatedWareHouse = given()
+        given()
                 .contentType(ContentType.JSON)
                 .when()
                 .delete(path + "/" + createdId)
@@ -101,7 +99,7 @@ public class WarehouseEndpointIT {
         warehouse.setLocation("AMSTERDAM-001");
         warehouse.setStock(10);
 
-        String createdId = given()
+        given()
                 .contentType(ContentType.JSON)
                 .body(warehouse)
                 .when()
@@ -111,7 +109,7 @@ public class WarehouseEndpointIT {
                 .extract()
                 .jsonPath().get("id");
 
-        ExtractableResponse<Response> newlyReplacedWareHouse = given()
+        given()
                 .contentType(ContentType.JSON)
                 .body(warehouse)
                 .when()

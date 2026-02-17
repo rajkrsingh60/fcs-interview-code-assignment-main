@@ -47,29 +47,13 @@ public class ReplaceWarehouseUseCase implements ReplaceWarehouseOperation {
 
     // ---- location validation ----
     Location loc = locationGateway.resolveByIdentifier(newWarehouse.location);
-    if (loc == null) {
-      LOG.warnf("Invalid location specified for replacement: %s", newWarehouse.location);
-      throw new WebApplicationException("Invalid location: " + newWarehouse.location, 422);
-    }
+    warehouseValidationRules.validateLocation(loc, newWarehouse.location);
 
     // ---- capacity/stock rules for the new warehouse ----
-    if (newWarehouse.capacity > loc.maxCapacity) {
-      LOG.warnf("New capacity %d exceeds max capacity %d for location %s", newWarehouse.capacity, loc.maxCapacity, newWarehouse.location);
-      throw new WebApplicationException(
-              "Capacity exceeds max capacity for location. max=" + loc.maxCapacity + ", requested=" + newWarehouse.capacity, 422);
-    }
-    if (newWarehouse.stock > newWarehouse.capacity) {
-      LOG.warnf("New stock %d exceeds new capacity %d", newWarehouse.stock, newWarehouse.capacity);
-      throw new WebApplicationException("Stock cannot exceed capacity.", 422);
-    }
+    warehouseValidationRules.validateCapacityAndStock(newWarehouse, loc);
 
     // ---- replacement-specific validations ----
-    // Capacity accommodation: new capacity must hold the existing stock
-    if (newWarehouse.capacity < current.stock) {
-      LOG.warnf("New capacity %d cannot accommodate existing stock %d", newWarehouse.capacity, current.stock);
-      throw new WebApplicationException(
-              "New capacity cannot accommodate existing stock. existingStock=" + current.stock + ", newCapacity=" + newWarehouse.capacity, 422);
-    }
+    warehouseValidationRules.validateReplacement(newWarehouse, current);
 
     // ---- max warehouses at the target location ----
     // Count active warehouses at target location, excluding the one being replaced (same BU code).
@@ -79,11 +63,7 @@ public class ReplaceWarehouseUseCase implements ReplaceWarehouseOperation {
                     .filter(w -> !Objects.equals(w.businessUnitCode, current.businessUnitCode))
                     .count();
 
-    if (activeAtTarget >= loc.maxNumberOfWarehouses) {
-      LOG.warnf("Maximum number of warehouses reached for location: %s", newWarehouse.location);
-      throw new WebApplicationException(
-              "Maximum number of warehouses reached for location: " + newWarehouse.location, 422);
-    }
+    warehouseValidationRules.validateMaxWarehouses(loc, activeAtTarget, newWarehouse.location);
 
     // ---- perform replacement: archive old + create new ----
     LOG.infof("Archiving old warehouse and creating new one for %s", newWarehouse.businessUnitCode);
